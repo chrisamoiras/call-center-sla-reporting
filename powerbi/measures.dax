@@ -1,0 +1,36 @@
+// Call Center SLA Reporting – Power BI calculated columns and measures
+// Fictional practice data. Model: calls (fact) -> clients, agents (dimensions)
+
+// ---------- Calculated columns (table: calls) ----------
+call_date      = DATE ( YEAR ( calls[call_start] ), MONTH ( calls[call_start] ), DAY ( calls[call_start] ) )
+week_start     = calls[call_date] - WEEKDAY ( calls[call_date], 2 ) + 1          // Monday of the week
+interval_30min = FORMAT ( calls[call_start], "HH" ) & ":" & IF ( MINUTE ( calls[call_start] ) < 30, "00", "30" )
+in_sla         = IF ( calls[answered] = 1 && calls[wait_sec] <= RELATED ( clients[sla_threshold_sec] ), 1, 0 )
+
+// ---------- Volume ----------
+Offered Calls   = COUNTROWS ( calls )
+Answered Calls  = SUM ( calls[answered] )
+Abandoned Calls = [Offered Calls] - [Answered Calls]
+
+// ---------- KPIs ----------
+SLA %     = DIVIDE ( SUM ( calls[in_sla] ), [Offered Calls] )
+Abandon % = DIVIDE ( [Abandoned Calls], [Offered Calls] )
+AHT (sec) = AVERAGEX ( FILTER ( calls, calls[answered] = 1 ), calls[talk_sec] + calls[hold_sec] + calls[acw_sec] )
+ASA (sec) = CALCULATE ( AVERAGE ( calls[wait_sec] ), calls[answered] = 1 )
+FCR %     = AVERAGE ( calls[resolved_first_contact] )
+CSAT      = AVERAGE ( calls[csat_score] )
+
+SLA Status = IF ( ISBLANK ( [SLA Target %] ), BLANK (), IF ( [SLA %] >= [SLA Target %], "OK", "MISS" ) )
+
+// ---------- Contract targets (blank when more than one client is in context) ----------
+SLA Target %     = DIVIDE ( SELECTEDVALUE ( clients[sla_target_pct] ), 100 )
+Abandon Target % = DIVIDE ( SELECTEDVALUE ( clients[abandon_target_pct] ), 100 )
+AHT Target (sec) = SELECTEDVALUE ( clients[aht_target_sec] )
+CSAT Target      = SELECTEDVALUE ( clients[csat_target] )
+
+// ---------- Status colors for conditional formatting ----------
+// Higher is better: SLA, CSAT (>=). Lower is better: Abandon, AHT (<=).
+SLA Color     = IF ( ISBLANK ( [SLA Target %] ), BLANK (), IF ( [SLA %] >= [SLA Target %], "#1E8449", "#C0392B" ) )
+Abandon Color = IF ( ISBLANK ( [Abandon Target %] ), BLANK (), IF ( [Abandon %] <= [Abandon Target %], "#1E8449", "#C0392B" ) )
+AHT Color     = IF ( ISBLANK ( [AHT Target (sec)] ), BLANK (), IF ( [AHT (sec)] <= [AHT Target (sec)], "#1E8449", "#C0392B" ) )
+CSAT Color    = IF ( ISBLANK ( [CSAT Target] ), BLANK (), IF ( [CSAT] >= [CSAT Target], "#1E8449", "#C0392B" ) )

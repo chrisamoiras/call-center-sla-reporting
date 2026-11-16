@@ -1,0 +1,5 @@
+client_id,client_name,queue_language,sla_target_pct,sla_threshold_sec,abandon_target_pct,aht_target_sec,csat_target,contract_start
+C01,NordTech Software,German,80,20,5,340,4.2,2025-03-01
+C02,BrightMobile Telecom,English,80,30,6,300,4.0,2024-06-01
+C03,Gulf Home Retail,Arabic,75,30,7,250,4.0,2025-09-01
+C04,CloudNest Hosting,English,85,20,4,480,4.3,2026-09-14
